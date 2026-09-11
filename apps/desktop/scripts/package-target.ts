@@ -4,6 +4,7 @@ import { spawn } from 'node:child_process'
 import { mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
 import { parseArgs } from 'node:util'
 import { join, resolve } from 'node:path'
+import path from 'node:path'
 import {
   desktopBuildRecordFilename,
   resolveDesktopAutoUpdateConfig,
@@ -254,8 +255,14 @@ function runPnpm(
   if (pnpmEntry === undefined || pnpmEntry === '') {
     throw new Error('desktop package: invoke this script through a pnpm package command')
   }
+
+  // 判断入口是 JS 脚本还是原生二进制
+  const isJsEntry = ['.js', '.cjs', '.mjs'].includes(path.extname(pnpmEntry))
+  const command = isJsEntry ? process.execPath : pnpmEntry
+  const commandArgs = isJsEntry ? [pnpmEntry, ...args] : [...args]
+
   return new Promise((resolvePromise, reject) => {
-    const child = spawn(process.execPath, [pnpmEntry, ...args], {
+    const child = spawn(command, commandArgs, {
       cwd,
       env,
       stdio: 'inherit',

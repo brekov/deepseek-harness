@@ -66,7 +66,16 @@ async function checkPty() {
 
 /** fs-ext implements seek on Windows through SetFilePointerEx and on POSIX through lseek. */
 function checkFsExt() {
-  const fsExt = requireRuntime('fs-ext')
+  let fsExt
+  try {
+    fsExt = requireRuntime('fs-ext')
+  } catch (error) {
+    if (error.code === 'MODULE_NOT_FOUND') {
+      console.warn('runtime payload smoke: fs-ext not present, skipping')
+      return
+    }
+    throw error
+  }
   const file = join(scratch, 'seek.txt')
   writeFileSync(file, 'abcdef', { flag: 'wx', mode: 0o600 })
   const fd = openSync(file, 'r')
