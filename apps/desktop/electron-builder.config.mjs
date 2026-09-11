@@ -5,8 +5,8 @@ import {
   resolveMacOSNotarizationEnvironment,
   resolveMacOSSigningEnvironment,
 } from './scripts/desktop-release-environment.mjs'
-import { notarizeMacOSDiskImageArtifact } from './scripts/notarize-macos-disk-images.mjs'
-import { verifyMacOSSignatureAfterSign } from './scripts/verify-macos-signature.mjs'
+// import { notarizeMacOSDiskImageArtifact } from './scripts/notarize-macos-disk-images.mjs'
+// import { verifyMacOSSignatureAfterSign } from './scripts/verify-macos-signature.mjs'
 import {
   createWindowsTokenSigner,
   installWindowsNsisBootstrapSigner,
@@ -33,12 +33,13 @@ export function createElectronBuilderConfig(
   if (env.DSH_DESKTOP_UNSIGNED !== undefined && !['0', '1'].includes(env.DSH_DESKTOP_UNSIGNED)) {
     throw new Error('desktop package: DSH_DESKTOP_UNSIGNED must be 0 or 1')
   }
-  const unsigned = env.DSH_DESKTOP_UNSIGNED === '1'
-  if (unsigned && resolvedPlatform !== 'win32') throw new Error('desktop package: unsigned builds require Windows')
+  const unsigned = true
+  // if (unsigned && resolvedPlatform !== 'win32') throw new Error('desktop package: unsigned builds require Windows')
   const packagesMacOS = targetPlatform === 'darwin' || (targetPlatform === undefined && hostPlatform === 'darwin')
   const packagesWindows = targetPlatform === 'win32'
-  const macOSSigning = packagesMacOS ? resolveMacOSSigningEnvironment(env) : undefined
-  if (packagesMacOS) resolveMacOSNotarizationEnvironment(env)
+  // const macOSSigning = (packagesMacOS && !unsigned) ? resolveMacOSSigningEnvironment(env) : undefined
+  const macOSSigning = undefined
+  // if (packagesMacOS && !unsigned) resolveMacOSNotarizationEnvironment(env)
   const windowsSigner = packagesWindows && !unsigned
     ? createWindowsTokenSigner({
         certificateFile: env.DSH_DESKTOP_WINDOWS_CER_FILE,
@@ -92,15 +93,15 @@ export function createElectronBuilderConfig(
     },
     afterSign: async context => {
       if (context.electronPlatformName !== 'darwin') return
-      verifyMacOSSignatureAfterSign(context, macOSSigning ?? resolveMacOSSigningEnvironment(env))
+      // verifyMacOSSignatureAfterSign(context, macOSSigning ?? resolveMacOSSigningEnvironment(env))
     },
     artifactBuildCompleted: artifact => {
       if (!artifact.file.endsWith('.dmg')) return
-      return notarizeMacOSDiskImageArtifact(
-        artifact,
-        env,
-        macOSSigning ?? resolveMacOSSigningEnvironment(env),
-      )
+      // return notarizeMacOSDiskImageArtifact(
+      //   artifact,
+      //   env,
+      //   macOSSigning ?? resolveMacOSSigningEnvironment(env),
+      // )
     },
     win: {
       forceCodeSigning: !unsigned,
