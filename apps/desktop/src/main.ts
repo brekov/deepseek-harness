@@ -11,6 +11,7 @@ import {
   Menu,
   protocol,
   type IpcMainInvokeEvent,
+  type MenuItemConstructorOptions,
 } from 'electron'
 import { resolveDesktopPaths } from './paths.ts'
 import { DesktopProjectManager, type DesktopProjectHooks } from './project-manager.ts'
@@ -434,7 +435,7 @@ async function main(): Promise<void> {
     void pluginWindow.loadURL(`${SCHEME}://shell/plugin-manager.html`)
   }
 
-  Menu.setApplicationMenu(Menu.buildFromTemplate([{
+  const applicationMenu: MenuItemConstructorOptions = {
     label: process.platform === 'darwin' ? app.name : messages.application,
     submenu: [
       {
@@ -447,7 +448,22 @@ async function main(): Promise<void> {
       { type: 'separator' },
       { role: 'quit' },
     ],
-  }]))
+  }
+  // macOS derives the editing key equivalents (Command-C/V/X/A/Z) from application-menu roles,
+  // so replacing the default menu without this submenu disables them in every renderer input.
+  const editMenu: MenuItemConstructorOptions = {
+    label: messages.editMenu,
+    submenu: [
+      { label: messages.undo, role: 'undo' },
+      { label: messages.redo, role: 'redo' },
+      { type: 'separator' },
+      { label: messages.cut, role: 'cut' },
+      { label: messages.copy, role: 'copy' },
+      { label: messages.paste, role: 'paste' },
+      { label: messages.selectAll, role: 'selectAll' },
+    ],
+  }
+  Menu.setApplicationMenu(Menu.buildFromTemplate([applicationMenu, editMenu]))
 
   const createMainWindow = (): BrowserWindow => {
     const window = createWindow(appPreload, true)
