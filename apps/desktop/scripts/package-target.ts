@@ -284,8 +284,11 @@ function runPnpm(
 async function main(): Promise<void> {
   const invocation = parseDesktopPackageInvocation(process.argv.slice(2))
   const { target } = invocation
-  const environment = loadDesktopPackageEnvironment(target.platform)
-  validateDesktopPackageEnvironment(environment, target, invocation)
+  // Local unsigned builds carry no release settings: skip the .env file, its qualification
+  // preflight, and the macOS signing keychain, and package with the ambient environment.
+  const localUnsigned = process.env.DSH_DESKTOP_UNSIGNED === '1'
+  const environment = localUnsigned ? process.env : loadDesktopPackageEnvironment(target.platform)
+  if (!localUnsigned) validateDesktopPackageEnvironment(environment, target, invocation)
   if (invocation.check) {
     process.stdout.write(`desktop package: ${target.name} local configuration valid; signing and notarization were not attempted\n`)
     return
@@ -297,7 +300,7 @@ async function main(): Promise<void> {
   if (run !== undefined) console.log(`DESKTOP_PACKAGING_RECORD ${run.directory}`)
   let success = false
   try {
-    if (target.platform === 'darwin') {
+    if (target.platform === 'darwin' && !localUnsigned) {
       await withMacOSSigningKeychain(environment, signingEnvironment => packageTarget(invocation, signingEnvironment, run))
     } else {
       await packageTarget(invocation, environment, run)
@@ -332,7 +335,7 @@ export async function packageTarget(
     DSH_DESKTOP_TARGET_PLATFORM: target.platform,
     DSH_DESKTOP_TARGET_ARCH: target.arch,
   }
-  const electronBuilderEnv = desktopElectronBuilderEnvironment(targetEnv, invocation.unsigned)
+  const electronBuilderEnv = desktopElectronBuilderEnvironment(targetEnv, invocation.unsigned || targetEnv.DSH_DESKTOP_UNSIGNED === '1')
   for (const name of WINDOWS_SIGNING_ENV_NAMES) {
     if (!invocation.unsigned && environment[name] !== undefined) electronBuilderEnv[name] = environment[name]
   }
