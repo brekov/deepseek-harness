@@ -120,23 +120,6 @@ async function main(): Promise<void> {
       readDesktopCorePackageSet(BUILD_ROOT, release.version),
     )
     await runPnpm(['install', '--prod', '--frozen-lockfile', '--trust-lockfile'])
-    const electronVersion = JSON.parse(
-      readFileSync(join(APP_ROOT, 'node_modules', 'electron', 'package.json'), 'utf8'),
-    ) as { version: string }
-    await new Promise<void>((accept, reject) => {
-      const child = spawn(process.execPath, [
-        join(APP_ROOT, 'node_modules', '@electron', 'rebuild', 'lib', 'cli.js'),
-        '--force',
-        '--which-module', 'fs-ext',
-        '--version', electronVersion.version,
-        '--arch', process.arch === 'arm64' ? 'arm64' : 'x64',
-        '--module-dir', BUILD_ROOT,
-      ], { stdio: 'inherit', cwd: BUILD_ROOT })
-      child.once('error', reject)
-      child.once('close', code => code === 0
-        ? accept()
-        : reject(new Error(`electron-rebuild fs-ext exited with ${String(code)}`)))
-    })
     const packageSet = readDesktopCorePackageSet(BUILD_ROOT, release.version)
     const targetName = resolveDesktopBuildTarget()
     const target = { platform: process.platform, arch: targetName.endsWith('arm64') ? 'arm64' : 'x64' }
